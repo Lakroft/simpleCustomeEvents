@@ -3,9 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 
-public class EventObserverSrc : MonoBehaviour {
+public class EventObserver : MonoBehaviour {
 	public delegate void EventDelegate();
-
+	protected static List<EventDelegate> forUnsubscribe;
+	private static bool needUnsubscribe = false;
 	//Это нужно будет перенести в другой скрипт:
 	private class MyCustomEvent //Класс события. На каждую подписку создается 1 такой, хранит список делегатов, отлавливает ошибки при попытке 
 	{							// вызвать метод уже уничтоженного объекта.
@@ -32,7 +33,7 @@ public class EventObserverSrc : MonoBehaviour {
 
 		public void Execute()
 		{
-			List<EventDelegate> forUnsubscribe = new List<EventDelegate> ();
+			
 			foreach(EventDelegate deleg in fancs)
 			{
 				if(deleg != null)
@@ -42,6 +43,10 @@ public class EventObserverSrc : MonoBehaviour {
 					{
 						deleg();
 					} catch (Exception ex) {
+						if (forUnsubscribe == null) {
+							forUnsubscribe  = new List<EventDelegate> ();
+						}
+						needUnsubscribe = true;
 						forUnsubscribe.Add(deleg);
 						#if UNITY_EDITOR
 						Debug.LogError(ex.Message);
@@ -50,7 +55,7 @@ public class EventObserverSrc : MonoBehaviour {
 					}
 				}
 			}
-			if(forUnsubscribe.Count > 0)
+			if(needUnsubscribe && forUnsubscribe.Count > 0)
 			{
 				foreach(EventDelegate tempDeleg in forUnsubscribe)
 				{
@@ -60,7 +65,18 @@ public class EventObserverSrc : MonoBehaviour {
 					#endif
 				}
 				forUnsubscribe.Clear();
+				needUnsubscribe = false;
 			}
+		}
+
+	}
+
+	private static EventObserver _this;
+	public static EventObserver Instance {
+		get {
+			if (_this == null)
+				_this = new EventObserver ();
+			return _this;
 		}
 	}
 
@@ -68,16 +84,15 @@ public class EventObserverSrc : MonoBehaviour {
 	private Dictionary<string, MyCustomEvent> eventDictionary = new Dictionary<string, MyCustomEvent>();
 	private Queue<string> events = new Queue<string> ();
 	public bool DebugMode = false;
+	private MyCustomEvent tempEvent;
 
-//	void Start () {
-//	
-//	}
+	void Awake () {
+		_this = this;
+	}
 
 	void Update () { //Выполнение событий происходит в апдейте, до тех пор события хранятся в очереди.
-		Profiler.BeginSample("Observer");
+		//Profiler.BeginSample("Observer");
 		if (events.Count > 0) {
-			
-			MyCustomEvent tempEvent;
 			string tempKey;
 			while (events.Count > 0) {
 				tempKey = events.Dequeue ();
@@ -94,19 +109,18 @@ public class EventObserverSrc : MonoBehaviour {
 				}
 			}
 		}
-		Profiler.EndSample();
+		//Profiler.EndSample();
 	}
 
 	public void Subscribe(string key, EventDelegate newEvent, GameObject sender) //Подписка на событие. Геймобджект нужен, что-бы в эдиторе можно было отследить, кто и когда подписывается.
 	{
-		MyCustomEvent temp;
 		if (!eventDictionary.ContainsKey (key)) {
-			temp = new MyCustomEvent ();
-			eventDictionary.Add (key, temp);
+			tempEvent = new MyCustomEvent ();
+			eventDictionary.Add (key, tempEvent);
 		} else {
-			eventDictionary.TryGetValue(key, out temp);
+			eventDictionary.TryGetValue(key, out tempEvent);
 		}
-		temp.Subscribe (newEvent);
+		tempEvent.Subscribe (newEvent);
 		#if UNITY_EDITOR
 		if (DebugMode) {
 			Debug.Log ("Subscribe " + sender.name + " for event " + key);
@@ -116,11 +130,13 @@ public class EventObserverSrc : MonoBehaviour {
 
 	public void Unsubscribe(string key, EventDelegate forRemove)
 	{
-		MyCustomEvent temp;
-		if (eventDictionary.TryGetValue (key, out temp)) {
-			temp.Unsubscribe (forRemove);
-			if (temp.Count == 0) {
+		if (eventDictionary.TryGetValue (key, out tempEvent)) {
+			tempEvent.Unsubscribe (forRemove);
+			if (tempEvent.Count == 0) {
 				eventDictionary.Remove (key); //Очищаем лишние события.
+				if (eventDictionary.Count == 0) {//Если подписок нет, можно не занимать ресурсы и удалиться.
+					Destroy (_this);
+				}
 			}
 		} else {
 			Debug.LogError("Trying to unsubscribe unexisting event " + key);

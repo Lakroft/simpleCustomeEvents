@@ -5,25 +5,26 @@ using UnityEngine;
 using System.Collections;
 
 public class Subscriber : MonoBehaviour {
-	public EventObserverSrc observer;
+	public EventObserver observer;
 
 	// Use this for initialization
 	void Start () {
-		EventObserverSrc.EventDelegate forAdd = Move;
-		observer.Subscribe ("move", forAdd, gameObject);
+		//observer.Subscribe ("move", Move, gameObject);
+		EventObserver.Instance.Subscribe("move", Move, gameObject);
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		if (Input.GetKeyDown (KeyCode.Escape)) {
-			EventObserverSrc.EventDelegate forAdd = Move;
-			observer.Unsubscribe ("move", forAdd);
+			//EventObserverSrc.EventDelegate forAdd = Move;
+			//observer.Unsubscribe ("move", Move);
+			EventObserver.Instance.Unsubscribe ("move", Move);
 		}
 	}
 
 	public void Move()
 	{
 		gameObject.transform.position += Vector3.right * 3;
-		Debug.Log ("Move object " + gameObject.name);
+		//Debug.Log ("Move object " + gameObject.name);
 	}
 }

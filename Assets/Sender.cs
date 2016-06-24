@@ -4,7 +4,7 @@ using UnityEngine;
 using System.Collections;
 
 public class Sender : MonoBehaviour {
-	public EventObserverSrc observer;
+	public EventObserver observer;
 	// Use this for initialization
 	void Start () {
 	

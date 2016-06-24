@@ -25,7 +25,7 @@ public class EventSender : MonoBehaviour {
 	{
 
 		gameObject.transform.position += Vector3.right * 3;
-		Debug.Log (gameObject.name);
+		//Debug.Log (gameObject.name);
 
 	}
 
