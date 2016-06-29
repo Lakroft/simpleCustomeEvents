@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/Delegates.unity
+- path: Assets/MovieTexture.unity
   isLoaded: 1
   isActive: 1
