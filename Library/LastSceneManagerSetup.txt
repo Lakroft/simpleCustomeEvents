@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/MovieTexture.unity
+- path: Assets/CamController.unity
   isLoaded: 1
   isActive: 1
